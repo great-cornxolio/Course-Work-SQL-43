@@ -98,16 +98,62 @@ limit 10 --ограничиваем результат 10 строками;
 select
 	count(*) "number of bookings without BP" --считаем кол-во строк из запроса сt2 и находим кол-во броней, по которым не были получены посадочные
 from
-	(select distinct ct.book_ref --выбираем уникальные номера броней из подзапроса ct
+	(select distinct
+		ct.book_ref --выбираем уникальные номера броней из подзапроса ct
 	 from
-		(select t.ticket_no, b.book_ref
-		 from bookings b --выбираем номера билетов в соответствии с номером брони из таблицы bookings
-		 join tickets t using(book_ref)) ct --соединяем с таблицей tickets, заворачиваем в подзапрос ct готовую таблицу "номер билета - номер брони"
+		(select
+			t.ticket_no,
+			b.book_ref
+		 from
+			bookings b --выбираем номера билетов в соответствии с номером брони из таблицы bookings
+		 join
+			tickets t using(book_ref)) ct --соединяем с таблицей tickets, заворачиваем в подзапрос ct готовую таблицу "номер билета - номер брони"
 	left join
 		boarding_passes bp using(ticket_no) --соединяем левым соединением с таблицей boarding_passes, чтобы увидеть пустые поля в колонке boarding_no в случае отсутствия посадочного
 	where
 		bp.boarding_no is null --фильтруем по пустым значениям в колонке boarding_no, чтобы вывести брони без посадочных
 	) ct2;
+```
+
+| №  | Вопрос       | Обязательно используется | Кол-во баллов |
+|----|--------------|--------------------------|---------------|
+| 5  | Найдите количество свободных мест для каждого рейса, их % отношение к общему количеству мест в самолете. Добавьте столбец с накопительным итогом - суммарное накопление количества вывезенных пассажиров из каждого аэропорта на каждый день. Т.е. в этом столбце должна отражаться накопительная сумма - сколько человек уже вылетело из данного аэропорта на этом или более ранних рейсах в течении дня? | Оконная функция; подзапросы или/и cte | 35 |
+
+```sql
+with cte1 as (  --создаем cte1, где выводим общее количество мест в самолете по каждому ID рейса
+	select
+		f.flight_id,
+		f.departure_airport,
+		f.actual_departure,
+		count(*) total_seats
+	from
+		seats s --из таблицы seats выбираем кол-во строк, сгруппированных по ID рейса из таблицы flights
+	join
+		flights f using (aircraft_code) --присоединяем таблицу flights для вывода ID рейса по коду самолета
+	group by
+		1
+	having
+		f.actual_departure is not null), --группируем по ID рейса и добавляем условие о наличии даты и времени вылета (по условию задачи)
+     cte2 as ( --создаем cte2, где выводим количество мест, по которым были выданы посадочные, по каждому ID рейса
+	select
+		flight_id,
+		сount(*) occup_seats
+	from
+		boarding_passes --из таблицы boarding_passes выбираем кол-во строк, сгруппированных по ID рейса
+	group by
+		1)
+select 
+	cte2.flight_id, --выбираем ID рейса
+	(cte1.total_seats - cte2.occup_seats) num_free_seats, --считаем кол-во свободных мест, вычитая кол-во занятых мест в cte2 из общ. кол-ва мест в самолете в cte1
+	round(100.0 * (cte1.total_seats - cte2.occup_seats) / cte1.total_seats, 2) percent_free_seats, --считаем эту разницу в процентном соотношении
+	sum(cte2.occup_seats) over (partition by cte1.departure_airport, cte1.actual_departure::date order by cte1.actual_departure) sum_passengers --добавляем оконную функцию sum с накоплением для количества вылетевших пассажиров, группируя по аэропорту и дню вылета и сортируя по дате с временем вылета
+from
+	cte2
+join
+	cte1 using(flight_id) --соединяем обе cte
+order by
+	cte1.departure_airport,
+	cte1.actual_departure --для визуальной видимости накопления сортируем по аэоропорту и дате;
 ```
 
 *В облачной базе координаты находятся в столбце airports_data.coordinates - работаете, как с массивом. В локальной базе координаты находятся в столбцах airports.longitude и airports.latitude.
