@@ -276,5 +276,5 @@ order by
 	1, 2 --сортируем для визульного удобства;
 ```
 
-[РЕШЕНИЕ. Приложение №2]
+### [РЕШЕНИЕ. Приложение №2](https://github.com/great-cornxolio/Course-Work-SQL-43/blob/main/SQL-43_TW.sql)
 
