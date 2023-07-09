@@ -1,5 +1,5 @@
 # Курсовая работа по модулю "SQL и получение данных"
-Нетология SQL-43
+Нетология. Курс SQL-43. Программа "Data Scientist: с нуля до middle"
 ___
 
 ## Цели работы
@@ -8,11 +8,11 @@ ___
 ## Описание задания
 Для выполнения работы Вам необходимо:
 
-1. Перейти по ссылке и ознакомиться с описанием базы данных: https://github.com/great-cornxolio/Course-Work-SQL-43/blob/main/bookings.pdf
+1. Перейти по ссылке и ознакомиться с описанием базы данных: [bookings](https://github.com/great-cornxolio/Course-Work-SQL-43/blob/main/bookings.pdf)
 2. Подключиться к базе данных avia по одному из следующих вариантов:
 -облачное подключение, те же настройки, что и у dvd-rental, только название базы demo, схема bookings
 -импорт sql запроса из sql файла, представленных на 2 странице описания базы
--восстановить базу из .backup файла по ссылке https://github.com/great-cornxolio/Course-Work-SQL-43/blob/main/avia.backup
+-восстановить базу из .backup файла по ссылке [avia](https://github.com/great-cornxolio/Course-Work-SQL-43/blob/main/avia.backup)
 3. Оформить работу согласно “Приложения №1” в формате .pdf или .doc
 -перелет, рейс = flight_id
 4. Создать запросы, позволяющие ответить на вопросы из “Приложения №2”, решения должны быть приложены в формате .sql одним файлом
