@@ -57,11 +57,11 @@ having
 ```sql
 with cte as (
 	select
-		*
+	  *
 	from
-    		aircrafts
+	  aircrafts
 	where
-    		range = (select max(range) from aircrafts)) --создаем СТЕ и выбираем строку из таблицы aircrafts с самым большим значением дальности полета в этой таблице
+	  range = (select max(range) from aircrafts)) --создаем СТЕ и выбираем строку из таблицы aircrafts с самым большим значением дальности полета в этой таблице
 select distinct
   ap.airport_code,
   ap.airport_name
