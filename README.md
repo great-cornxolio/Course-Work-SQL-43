@@ -10,11 +10,11 @@ ___
 
 1. Перейти по ссылке и ознакомиться с описанием базы данных: [bookings](https://github.com/great-cornxolio/Course-Work-SQL-43/blob/main/bookings.pdf)
 2. Подключиться к базе данных avia по одному из следующих вариантов:
--облачное подключение, те же настройки, что и у dvd-rental, только название базы demo, схема bookings
--импорт sql запроса из sql файла, представленных на 2 странице описания базы
--восстановить базу из .backup файла по ссылке [avia](https://github.com/great-cornxolio/Course-Work-SQL-43/blob/main/avia.backup)
+- облачное подключение, те же настройки, что и у dvd-rental, только название базы demo, схема bookings
+- импорт sql запроса из sql файла, представленных на 2 странице описания базы
+- восстановить базу из .backup файла по ссылке [avia](https://github.com/great-cornxolio/Course-Work-SQL-43/blob/main/avia.backup)
 3. Оформить работу согласно “Приложения №1” в формате .pdf или .doc
--перелет, рейс = flight_id
+- перелет, рейс = flight_id
 4. Создать запросы, позволяющие ответить на вопросы из “Приложения №2”, решения должны быть приложены в формате .sql одним файлом
 5. Отправить работу на проверку
 
@@ -156,11 +156,125 @@ order by
 	cte1.actual_departure --для визуальной видимости накопления сортируем по аэоропорту и дате;
 ```
 
+| №  | Вопрос       | Обязательно используется | Кол-во баллов |
+|----|--------------|--------------------------|---------------|
+| 6  | Найдите процентное соотношение перелетов по типам самолетов от общего количества | Подзапрос или окно; оператор ROUND | 25 |
+
+```sql
+select
+	aircraft_code,
+	round(100. * count(*) / (select count(*) from flights), 2) aircraft_percentage --считаем процентное соотношение между кол-вом рейсов по типу самолета и общим количеством рейсов, полученным через подзапрос; полученное значение округляем через ROUND
+from
+	flights
+group by
+	1 --для расчета кол-ва рейсов по типу самолета, группируем по aircraft_code;
+```
+
+| №  | Вопрос       | Обязательно используется | Кол-во баллов |
+|----|--------------|--------------------------|---------------|
+| 7  | Были ли города, в которые можно добраться бизнес - классом дешевле, чем эконом-классом в рамках перелета? | CTE | 25 |
+
+```sql
+with cte1 as (
+	select
+		flight_id,
+		min(amount) "b_cost"
+	from
+		ticket_flights tf
+	where
+		fare_conditions = 'Business' 
+	group by
+		1), --создаем CTE1, где выводим минимальную стоимость билета бизнес-класса, группируя по каждому рейсу
+     cte2 as (
+	select
+		flight_id,
+		max(amount) "e_cost"
+	from
+		ticket_flights tf
+	where
+		fare_conditions = 'Economy' 
+	group by
+		1) --создаем CTE2, где выводим максимальную стоимость билета эконом-класса, группируя по каждому рейсу
+select distinct
+	a.city --выводим уникальные названия городов, соединяя необходимые таблицы
+from
+	cte1 
+join
+	cte2 using(flight_id) --соединяем CTE1 и CTE2
+join
+	flights f using(flight_id)
+join
+	airports a on f.arrival_airport = a.airport_code --для вывода названия города соединяем сначала с таблицей flights, а потом с таблицей airports
+where
+	cte1.b_cost < cte2.e_cost --задаем условие, чтобы найти рейсы, где стоимость билета бизнес-класса будет меньше стоимости билета эконом-класса;
+```
+
+| №  | Вопрос       | Обязательно используется | Кол-во баллов |
+|----|--------------|--------------------------|---------------|
+| 8  | Между какими городами нет прямых рейсов? | Декартово произведение в предложении FROM; самостоятельно созданные представления (если облачное подключение, то без представления); оператор EXCEPT | 25 |
+
+```sql
+create view direct as --создаем представление, где создадим таблицу "город вылета - город прилета", не исключая тот факт, что прямой рейс между городами может быть только в одну сторону
+	select distinct
+		a1.city departure_city,
+		a2.city arrival_city
+	from
+		airports a1,
+		airports a2 --соединяем колонку city декартовым соединением
+	where
+		a1.city != a2.city --исключаем строки, где город вылета равен городу прилета
+	order by
+		1, 2
+	
+select
+	*
+from
+	direct
+except --вычитаем из представления direct таблицу с рейсами
+select distinct
+	a_d.city,
+	a_a.city
+from
+	flights f -- из таблицы flight выбираем уникальные колонки с кодами аэропортов
+join
+	airports a_d on f.departure_airport = a_d.airport_code --соединяем с таблицей airports для идентификации города вылета
+join
+	airports a_a on f.arrival_airport = a_a.airport_code --соединяем с таблицей airports для идентификации города прилета;
+```
+
+| №  | Вопрос       | Обязательно используется | Кол-во баллов |
+|----|--------------|--------------------------|---------------|
+| 9  | Вычислите расстояние между аэропортами, связанными прямыми рейсами, сравните с допустимой максимальной дальностью перелетов в самолетах, обслуживающих эти рейс* | Оператор RADIANS или использование sind/cosd; CASE | 35 |
+
 *В облачной базе координаты находятся в столбце airports_data.coordinates - работаете, как с массивом. В локальной базе координаты находятся в столбцах airports.longitude и airports.latitude.
 Кратчайшее расстояние между двумя точками A и B на земной поверхности (если принять ее за сферу) определяется зависимостью:
 d = arccos {sin(latitude_a)·sin(latitude_b) + cos(latitude_a)·cos(latitude_b)·cos(longitude_a - longitude_b)}, где latitude_a и latitude_b — широты, longitude_a, longitude_b — долготы данных пунктов, d — расстояние между пунктами измеряется в радианах длиной дуги большого круга земного шара.
 Расстояние между пунктами, измеряемое в километрах, определяется по формуле:
 L = d·R, где R = 6371 км — средний радиус земного шара.
 
-Итого: максимум 200 баллов.
-Для зачета необходимо набрать минимум 130 баллов.
+```sql
+select distinct
+	a_d.airport_name departure_airport,
+	a_a.airport_name arrival_airport, --выбираем уникальные строки с названиями аэропортов 
+	round(6371. * (acos(sin(radians(a_d.latitude)) * sin(radians(a_a.latitude)) + cos(radians(a_d.latitude)) * cos(radians(a_a.latitude)) * cos(radians(a_d.longitude - a_a.longitude))))::numeric, 2) distance_km, --считаем расстояние между аэропортами, испульзуя RADIANS для преобразования градусов в радианы и округляем до 2 знаков после запятой
+	case
+		when round(6371. * (acos(sin(radians(a_d.latitude)) * sin(radians(a_a.latitude)) + cos(radians(a_d.latitude)) * cos(radians(a_a.latitude)) * cos(radians(a_d.longitude - a_a.longitude))))::numeric, 2) > a.range
+		then 'invalid model'
+		else 'valid model'
+	end aircraft_check -- используем case, чтобы сравнить расстояние между аэропортами с технической возможностью самолета
+from
+	flights f
+join
+	airports a_d on f.departure_airport = a_d.airport_code --соединяем с таблицей airports для идентификации аэропорта вылета
+join
+	airports a_a on f.arrival_airport = a_a.airport_code--соединяем с таблицей airports для идентификации аэропорта прилета
+join
+	aircrafts a using(aircraft_code) --соединяем с таблицей aircrafts для идентификации максимальной дальности полета самолета по каждому рейсу
+where
+	a_a.airport_name > a_d.airport_name --исключаем позиции между двумя аэропортами "в обратную сторону"
+order by
+	1, 2 --сортируем для визульного удобства;
+```
+
+[РЕШЕНИЕ. Приложение №2]
+
