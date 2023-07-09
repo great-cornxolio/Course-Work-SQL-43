@@ -39,9 +39,15 @@ ___
 | 1  | В каких городах больше одного аэропорта? | | 10 |
 
 ```sql
-SELECT file_hash -- stored ssdeep hash
-  FROM file_system
- WHERE file_name = '.vimrc';
+select
+  city,
+  count(*) "number of airports"
+from
+  airports --выбираем колонку с названием города и результат функции для подсчета строк в группе из таблицы airports
+group by
+  city --группируем по названию города
+having
+  count(*) > 1 --при условии, что кол-во строк в группе больше 1;
 ```
 
 *В облачной базе координаты находятся в столбце airports_data.coordinates - работаете, как с массивом. В локальной базе координаты находятся в столбцах airports.longitude и airports.latitude.
